@@ -1,0 +1,56 @@
+/* File: my-ecommerce-frontend/src/App.css */
+/* File: my-ecommerce-frontend/src/index.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background-color: #f4f4f9;
+}
+
+.App {
+  width: 100%;
+  min-height: 100vh;
+  text-align: center;
+  background-color: #f4f4f9;
+  display: flex;
+  flex-direction: column;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  width: 100%;
+}
+
+.products-container {
+  flex: 1; /* ensures it stretches */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  width: 100%;
+}
+
+.product-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+  text-align: left;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
