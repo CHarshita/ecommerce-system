@@ -1,4 +1,5 @@
 Full-Stack E-commerce System 🛍️
+
 This is a comprehensive e-commerce management system built with a modern technology stack. It allows users to browse products, manage a shopping cart, and place orders. The project is structured as a monorepo, with a separate backend API and a React-based frontend.
 
 ## Features
