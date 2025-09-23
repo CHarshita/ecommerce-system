@@ -66,15 +66,16 @@ export function Header() {
           </div>
 
           {isLoggedIn ? (
-            <button onClick={logout} className="action-button">
-              <span>Logout</span>
-            </button>
-          ) : (
-            <Link to="/login" className="action-button">
-              <UserIcon />
-              <span>Login</span>
-            </Link>
-          )}
+            <>
+            <Link to="/my-orders" className="action-button">My Orders</Link>
+            <button onClick={logout} className="action-button">Logout</button>
+            </>
+            ) : (
+                <Link to="/login" className="action-button">
+                <UserIcon />
+                <span>Login</span>
+                </Link>
+            )}
 
           {/* CORRECTED: Changed to NavLink */}
           <NavLink to="/cart" className="cart-button">

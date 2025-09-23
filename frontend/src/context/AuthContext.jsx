@@ -1,37 +1,46 @@
+// File: frontend/src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // This effect updates axios headers whenever the token changes
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('token', token);
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      localStorage.removeItem('token');
-    }
-  }, [token]);
+    useEffect(() => {
+        if (token) {
+            setIsLoggedIn(true);
+            localStorage.setItem('token', token);
+        } else {
+            setIsLoggedIn(false);
+            localStorage.removeItem('token');
+        }
+    }, [token]);
 
-  const login = async (email, password) => {
-    const response = await axios.post('http://localhost:3000/api/login', { email, password });
-    setToken(response.data.token);
-    return response;
-  };
+    const login = async (email, password) => {
+        try {
+            const response = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Login failed');
+            }
+            setToken(data.token);
+            return { success: true };
+        } catch (error) {
+            console.error('Login error:', error);
+            return { success: false, message: error.message };
+        }
+    };
 
-  const logout = () => {
-    setToken(null);
-  };
+    const logout = () => {
+        setToken(null);
+    };
 
-  const isLoggedIn = !!token;
+    const value = { isLoggedIn, token, login, logout };
 
-  return (
-    <AuthContext.Provider value={{ token, login, logout, isLoggedIn }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

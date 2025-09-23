@@ -1,76 +1,134 @@
-// File: server.js
-
+// File: backend/server.js (Final Version)
 const express = require('express');
-const mysql = require('mysql2');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mysql = require('mysql2');
 
 const app = express();
 const port = 3000;
+const JWT_SECRET = 'your_super_secret_key_that_is_long_and_random';
 
+// --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
 
-const db = mysql.createConnection({
+// --- DATABASE CONNECTION ---
+const db = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'Hars_hita711', // Your password
+    password: 'Hars_hita7611', // Your correct password
     database: 'ecommerce_db'
-});
+}).promise();
 
-db.connect(err => {
-    if (err) {
-        console.error('Error connecting to the database:', err);
-        return;
-    }
-    console.log('Successfully connected to the MySQL database. ✅');
-});
+// --- AUTHENTICATION MIDDLEWARE ---
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) return res.sendStatus(401);
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+};
 
 // --- API Endpoints ---
 
-app.get('/', (req, res) => {
-    res.send('Welcome to the E-commerce API!');
+// Product Endpoints
+app.get('/api/products', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM products');
+        res.json(rows);
+    } catch (err) {
+        console.error("Error fetching products:", err);
+        res.status(500).json({ message: 'Error fetching products' });
+    }
 });
 
-// Endpoint to get ALL products
-app.get('/api/products', (req, res) => {
-    const sql = "SELECT * FROM Products";
-    db.query(sql, (err, results) => {
-        if (err) {
-            return res.status(500).send('Error fetching products from database');
+// Auth Endpoints
+app.post('/api/register', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required.' });
+    }
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const query = 'INSERT INTO Users (Email, PasswordHash) VALUES (?, ?)';
+        const [result] = await db.query(query, [email, hashedPassword]);
+        res.status(201).json({ message: 'User registered successfully!', userId: result.insertId });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ message: 'Email already exists.' });
         }
-        res.json(results);
-    });
+        console.error("Registration error:", err);
+        res.status(500).json({ message: 'Server error during registration.' });
+    }
 });
 
-// ✨ NEW: Endpoint to get a SINGLE product by its ID ✨
-app.get('/api/products/:id', (req, res) => {
-    const productId = req.params.id; // Get the ID from the URL parameter
-    const sql = "SELECT * FROM Products WHERE ProductID = ?";
-    
-    db.query(sql, [productId], (err, results) => {
-        if (err) {
-            return res.status(500).json({ message: 'Database error' });
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required.' });
+    }
+    try {
+        const query = 'SELECT * FROM Users WHERE Email = ?';
+        const [users] = await db.query(query, [email]);
+
+        if (users.length === 0) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
-        // If no product is found with that ID
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'Product not found' });
+
+        const user = users[0];
+        const isPasswordMatch = await bcrypt.compare(password, user.PasswordHash);
+
+        if (!isPasswordMatch) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
         }
-        // Send the first (and only) result
-        res.json(results[0]); 
-    });
+
+        const token = jwt.sign({ userId: user.UserID, email: user.Email }, JWT_SECRET, { expiresIn: '1h' });
+        res.json({ message: 'Login successful!', token });
+    } catch (err) {
+        console.error("Login error:", err);
+        res.status(500).json({ message: 'Server error during login.' });
+    }
 });
 
+// Order Endpoints
+app.post('/api/orders', authenticateToken, async (req, res) => {
+    const { customerDetails, cartItems, totalAmount } = req.body;
+    const { userId } = req.user;
+    const connection = await db.getConnection();
 
-// User Registration Endpoint
-app.post('/api/register', (req, res) => {
-    // ... (your existing register code)
+    try {
+        await connection.beginTransaction();
+        const orderQuery = `INSERT INTO orders (UserID, customer_name, customer_email, delivery_address, total_amount) VALUES (?, ?, ?, ?, ?)`;
+        const [orderResult] = await connection.query(orderQuery, [userId, `${customerDetails.firstName} ${customerDetails.lastName}`, customerDetails.email, customerDetails.address, totalAmount]);
+        const orderId = orderResult.insertId;
+        const itemQuery = `INSERT INTO order_items (order_id, product_id, quantity, price_per_unit) VALUES ?`;
+        const orderItemsData = cartItems.map(item => [orderId, item.id, item.quantity, item.price]);
+        await connection.query(itemQuery, [orderItemsData]);
+        await connection.commit();
+        res.status(201).json({ message: 'Order placed successfully!', orderId: orderId });
+    } catch (err) {
+        await connection.rollback();
+        console.error("Failed to create order:", err);
+        res.status(500).json({ error: 'Failed to place order.' });
+    } finally {
+        connection.release();
+    }
 });
 
-// User Login Endpoint
-app.post('/api/login', (req, res) => {
-    // ... (your existing login code)
+app.get('/api/my-orders', authenticateToken, async (req, res) => {
+    try {
+        const query = 'SELECT * FROM orders WHERE UserID = ? ORDER BY order_date DESC';
+        const [orders] = await db.query(query, [req.user.userId]);
+        res.json(orders);
+    } catch (err) {
+        console.error("Get my-orders error:", err);
+        res.status(500).json({ message: "Failed to retrieve orders." });
+    }
 });
 
 // Start the server

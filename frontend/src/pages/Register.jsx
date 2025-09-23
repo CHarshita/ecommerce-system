@@ -1,25 +1,40 @@
-import React, { useState, useContext } from 'react';
+// File: frontend/src/pages/Register.jsx
+
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { AuthContext } from '../context/AuthContext.jsx';
-import './Auth.css'; // Also import the CSS here
+import './Auth.css';
 
 function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(''); // ADDED: State for confirm password
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); // Clear previous errors
+
+    // FIXED: Check for password match
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
     try {
-      await axios.post('http://localhost:3000/api/register', { email, password });
-      await login(email, password); // Log in automatically after register
-      navigate('/');
+      const response = await fetch('http://localhost:3000/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+      // On success, redirect to login page with a success message
+      navigate('/login', { state: { message: 'Registration successful! Please log in.' } });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed.');
+      setError(err.message);
     }
   };
 
@@ -59,6 +74,21 @@ function Register() {
                 placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          {/* ADDED: Confirm Password Field */}
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm Password</label>
+            <div className="input-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input
+                type="password"
+                id="confirmPassword"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
             </div>

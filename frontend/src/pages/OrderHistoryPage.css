@@ -1,0 +1,7 @@
+/* File: frontend/src/pages/OrderHistoryPage.css */
+.order-history-wrapper { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+.order-history-wrapper h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 2rem; }
+.orders-list { display: flex; flex-direction: column; gap: 1rem; }
+.order-card { background-color: #fff; padding: 1.5rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
+.order-card h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; }
+.order-card p { margin-bottom: 0.25rem; }
