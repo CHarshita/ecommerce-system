@@ -1,23 +1,21 @@
 // File: server.js
 
-// 1. Import the packages we installed
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-// 2. Set up the Express app
 const app = express();
 const port = 3000;
 
-// 3. Configure middleware
-app.use(cors()); // Allows your frontend to connect to this backend
-app.use(express.json()); // Allows the server to understand JSON data
+app.use(cors());
+app.use(express.json());
 
-// 4. Connect to your MySQL database
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'Hars_hita7611', // IMPORTANT: Change this to your actual MySQL password
+    password: 'Hars_hita711', // Your password
     database: 'ecommerce_db'
 });
 
@@ -29,24 +27,53 @@ db.connect(err => {
     console.log('Successfully connected to the MySQL database. ✅');
 });
 
-// 5. Create a test API endpoint
+// --- API Endpoints ---
+
 app.get('/', (req, res) => {
     res.send('Welcome to the E-commerce API!');
 });
 
-// Create the API endpoint to get all products
+// Endpoint to get ALL products
 app.get('/api/products', (req, res) => {
     const sql = "SELECT * FROM Products";
     db.query(sql, (err, results) => {
         if (err) {
-            res.status(500).send('Error fetching products from database');
-            return;
+            return res.status(500).send('Error fetching products from database');
         }
-        res.json(results); // Send the product list back as a JSON response
+        res.json(results);
     });
 });
 
-// 6. Start the server
+// ✨ NEW: Endpoint to get a SINGLE product by its ID ✨
+app.get('/api/products/:id', (req, res) => {
+    const productId = req.params.id; // Get the ID from the URL parameter
+    const sql = "SELECT * FROM Products WHERE ProductID = ?";
+    
+    db.query(sql, [productId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: 'Database error' });
+        }
+        // If no product is found with that ID
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+        // Send the first (and only) result
+        res.json(results[0]); 
+    });
+});
+
+
+// User Registration Endpoint
+app.post('/api/register', (req, res) => {
+    // ... (your existing register code)
+});
+
+// User Login Endpoint
+app.post('/api/login', (req, res) => {
+    // ... (your existing login code)
+});
+
+// Start the server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port} 🚀`);
 });
