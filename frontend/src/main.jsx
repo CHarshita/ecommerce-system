@@ -12,6 +12,8 @@ import { RootLayout } from './components/RootLayout.jsx';
 import { AboutPage } from './pages/AboutPage.jsx';
 import { ProductPage } from './pages/ProductPage.jsx';
 import { ContactPage } from './pages/ContactPage.jsx';
+import { CartPage } from './pages/CartPage.jsx';
+import { CheckoutPage } from './pages/CheckoutPage.jsx';
 import './index.css';
 
 // --- CORRECTED ROUTER SETUP ---
@@ -26,6 +28,8 @@ const router = createBrowserRouter([
       }, { path: "about", element: <AboutPage /> },
       { path: "products", element: <ProductPage /> },
       { path: "contact", element: <ContactPage /> },
+      { path: "cart", element: <CartPage /> },
+      { path: "checkout", element: <CheckoutPage /> },
       // You can add other child pages here later that will share the same header
       // { path: "products", element: <ProductsPage /> },
     ]
